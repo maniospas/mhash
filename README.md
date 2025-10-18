@@ -47,7 +47,7 @@ int main(void) {
 The hash map data structure. Once created, you can access `MHash.num_hashes` to get a sense of how many hashing operations are internally performed.
 There can be up to 255 internal hashes, and computational cost is proportional to those. The number of stored elements is tracked through `MHash.count`.
 
-**Do NOT modify field values.**
+*Do NOT modify field values.*
 
 #### mhash_init
 
@@ -60,9 +60,8 @@ so you need to manage those independently. The only requirement is that keys are
 Retrieves the value associated with a given string in the range `0`..`MHash.count-1`. If you want a mapping to ids, there is no need to store
 any kind of value elsewhere.
 
-**Calling mhash_entry for a non-registed key is UB.** Do not attempt to error catch the result afterwards by looking at the implementation - the interface is
-not equipped to deal with that. This compromise is made for the sake of speed. Use the next function to safely get the value of an entry that could be
-missing.
+*Calling mhash_entry for a non-registed key is UB.* Do not attempt to error check the result afterwards by looking at the implementation - the interface is
+not equipped to present such info. This compromise is made for the sake of speed. Use the next function to safely get the value of an entry that could be missing.
 
 *mhash_check_at.* This is a safer -albeit a tad slower- version of `mhash_entry`. It returns a pointer at the memory address of a corresponding value,
 or NULL if the element is not found. The main additional cost is an internal string comparison.
