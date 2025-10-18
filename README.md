@@ -42,19 +42,25 @@ int main(void) {
 
 ## :book: API
 
-*MHash.* The hash map data structure. Once created, you can access `MHash.num_hashes` to get a sense of how many hashing operations are internally performed.
+#### MHash
+
+The hash map data structure. Once created, you can access `MHash.num_hashes` to get a sense of how many hashing operations are internally performed.
 There can be up to 255 internal hashes, and computational cost is proportional to those. The number of stored elements is tracked through `MHash.count`.
 
 **Do NOT modify field values.**
 
-*mhash_init.* It does not allocate any memory, but requires a manually allocated table pointer and associated capacity for its internal use.
+#### mhash_init
+
+It does not allocate any memory, but requires a manually allocated table pointer and associated capacity for its internal use.
 It guarantess that it will use only the indicated memory region (so you can retrieve pointers from larger buffers). Do note that MHash does *not* track keys and values,
 so you need to manage those independently. The only requirement is that keys are known at the point where you call `mhash_init`.
 
-*mhash_entry.* Retrieves the value associated with a given string in the range `0`..`MHash.count-1`. If you want a mapping to ids, there is no need to store
+#### mhash_entry
+
+Retrieves the value associated with a given string in the range `0`..`MHash.count-1`. If you want a mapping to ids, there is no need to store
 any kind of value elsewhere.
 
-**Calling mhash_entry for a non-existing is UB.** Do not attempt to error catch the result afterwards by looking at the implementation - the interface is
+**Calling mhash_entry for a non-registed key is UB.** Do not attempt to error catch the result afterwards by looking at the implementation - the interface is
 not equipped to deal with that. This compromise is made for the sake of speed. Use the next function to safely get the value of an entry that could be
 missing.
 
