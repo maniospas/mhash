@@ -12,6 +12,7 @@ at the cost of at most 28 bytes of memory!!!
 ## 🔥 Features
 
 - drop-in header installation
+- hash items are determined at RUNTIME
 - sub-linear time string indexing
 - external value processing in contiguous memory
 - compatible: no exceptions, no aborts, no rtti
