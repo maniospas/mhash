@@ -3,7 +3,7 @@
 This is an implementation of a perfect hash function that uniquely maps a given string to a
 `uint16_t` identifier. It works by adding hash functions from a parameterized family 
 until they combine into a unique hash. The main idea is that, with a large enough table holding 
-entry position ids, collisions are rare so you will want only a few hashes.
+entry ids, collisions are rare so you will want only a few hashes.
 
 ## :rocket: Features
 
@@ -27,7 +27,7 @@ hashes and comparisons.
 int main(void) {
     int values[] = {1, 2, 3, 4, 5, 6};
     // create map data
-    size_t table_size = 36; // ideally let this grow quadratically to the number of entries
+    size_t table_size = 37; // ideally let this grow quadratically to the number of entries, and be a prime
     size_t num_entries = 6;
     const char *keys[] = {"Apple", "Banana", "Cherry", "Date", "Doodoo", "D"};
     uint16_t table[table_size];
@@ -65,21 +65,28 @@ The hash map data structure. Once created, you can access `MHash.num_hashes` to 
 operations are internally performed. There can be up to 255 internal hashes, and computational cost is proportional 
 to those. The number of stored elements is tracked through `MHash.count`.
 
-⚠️⚠️⚠️ *Do NOT modify field values.*
+⚠️ *Do NOT modify field values.*
 
 #### mhash_init
 
 It does not allocate any memory, but requires a manually allocated table pointer and associated capacity for its internal use.
-It guarantess that it will use only the indicated memory region (so you can retrieve pointers from larger buffers). Do note that 
+It guarantees that it will use only the indicated memory region (so you can retrieve pointers from larger buffers). Do note that 
 MHash does *not* track keys and values, so you need to manage those independently. The only requirement is that keys are known 
-at the point where you call `mhash_init`.
+at the point where you call `mhash_init`. 
+
+The last argument is a function pointer to computing the hash function given a `const void*` pointer to an instance of your
+data type and a `uint8_t` identifier of the hash function within its family. See *mhash_str.h* for string implementations;
+that files contains also the family of hash functions *mhash_str_prefix* that is based on an assumption that uniqueness information
+is heavily encoded in string prefixes.
+
+⚠️ *ALWAYS check for success given table size - you may need to increase table size or change the base hash function.*
 
 #### mhash_entry
 
 Retrieves the value associated with a given string in the range `0`..`MHash.count-1`. If you want a mapping to ids, there is no 
 need to store any kind of value elsewhere.
 
-⚠️⚠️⚠️ *Calling mhash_entry for a non-registed key is UB.* Do not attempt to error check the result afterwards by looking at the
+⚠️ *Calling mhash_entry for a non-registed key is UB.* Do not attempt to error check the result afterwards by looking at the
 implementation - the interface is not equipped to present such info. This compromise is made for the sake of speed. Use the next 
 function to safely get the value of an entry that could be missing.
 

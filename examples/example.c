@@ -8,7 +8,7 @@
 int main(void) {
     int values[] = {1, 2, 3, 4, 5, 6};
     // create map data
-    size_t table_size = 36; // ideally let this grow quadratically to the number of entries
+    size_t table_size = 17; // ideally let this grow quadratically to the number of entries, and be a prime
     size_t num_entries = 6;
     const char *keys[] = {"Apple", "Banana", "Cherry", "Date", "Doodoo", "D"};
     uint16_t table[table_size];
