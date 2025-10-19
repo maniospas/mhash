@@ -5,14 +5,14 @@ This is an implementation of a perfect hash function that uniquely maps a given 
 until they combine into a unique hash. The main idea is that, with a large enough table holding 
 entry ids, collisions are rare so you will want only a few hashes.
 
-## :rocket: Features
+## 🔥 Features
 
 - drop-in header installation
 - easy to integrate: no exceptions, no aborts, no rtti
 - sub-linear time string indexing
 - easily extensible: implement a hash and -optionally- a comparator
 
-## :zap: Quickstart
+## 🚀 Quickstart
 
 Place the file *mhash.h* into your project and include it like below.
 You can optionally include *mhash_str.h* too, as it grants access to string
@@ -57,7 +57,7 @@ int main(void) {
 }
 ```
 
-## :book: API
+## 🔌 API
 
 #### MHash
 
@@ -105,3 +105,5 @@ Pass the keys themselves as values to the last function to check that a value ex
 if(mhash_check_at(map, "Doodoo", keys, keys, sizeof(char*), mhash_strcmp))
     printf("Key exists");
 ```
+
+## ⏱️ benchmarks
