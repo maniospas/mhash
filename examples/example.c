@@ -15,11 +15,11 @@ int main(void) {
 
     // initialize the map (ALWAYS check for failure status, because init fails on excessive loads)
     MHash map;
-    if(mhash_init(&map, table, table_size, keys, num_entries, mhash_str_prefix)) {
+    if(mhash_init(&map, table, table_size, (const void**)keys, num_entries, mhash_str_prefix)) {
         printf("Failed to create map\n");
         return 1;
     }
-    printf("%d hashes\n", map.num_hashes);
+    printf("%ld hashes\n", map.num_hashes);
 
     // query the map (retrieves entry id)
     const char *query = "Cherry";
