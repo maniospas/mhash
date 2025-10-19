@@ -29,53 +29,36 @@
 #define MHASH_MAX_HASHES (UINT8_MAX-1)
 #endif
 
-typedef uint16_t (*mhash_func)(const char *s, uint8_t id);
-
+typedef uint16_t (*mhash_func)(const void *s, uint8_t id);
 typedef struct {
-    uint16_t *table;     // externally allocated table
-    size_t table_size;   // number of entries in the table
-    uint8_t num_hashes;  // number of hash functions used
-    size_t count;        // number of elements
-    mhash_func hashf;    // active hash function
+    uint16_t *table;         // externally allocated table
+    size_t table_size;       // number of entries in the table
+    uint8_t num_hashes;      // number of hash functions used
+    size_t count;            // number of elements
+    mhash_func hash_func;    // active hash function
 } MHash;
 
-static inline uint16_t hash_all(const char *s, uint8_t id) {
-    uint64_t h = 0x9E3779B97F4A7C15ULL * (id + 1);
-    for (const unsigned char *p = (const unsigned char *)s; *p; ++p)
-        h = (h ^ (*p + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2)));
-    return (uint16_t)(h & 0xFFFF);
-}
-
-static inline uint16_t hash_prefix(const char *s, uint8_t id) {
-    uint64_t h = 0x9E3779B97F4A7C15ULL * (id + 1);
-    const unsigned char *p = (const unsigned char *)s;
-    for (uint8_t i = 0; i <= id+1 && *p; ++i, ++p)
-        h ^= (uint64_t)(*p + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2));
-    return (uint16_t)(h & 0xFFFF);
-}
-
-static inline uint16_t mhash__concat(const MHash *ph, const char *s) {
+static inline uint16_t mhash__concat(const MHash *ph, const void *s) {
     uint32_t combined = 0;
     for (uint8_t i = 0; i < ph->num_hashes; ++i) {
-        uint16_t part = ph->hashf(s, i);
+        uint16_t part = ph->hash_func(s, i);
         combined ^= ROTL16(part, (i * 2) & 15);
     }
     return (uint16_t)(combined & 0xFFFF);
 }
-
 
 static inline int mhash_init(MHash *ph,
                         uint16_t *table,
                         size_t table_size,
                         const char **strings,
                         size_t count,
-                        mhash_func hashf) {
+                        mhash_func hash_func) {
     if (!ph || !table || !strings || table_size == 0)
         return MHASH_FAILED;
-    ph->table = table;
+    ph->table      = table;
     ph->table_size = table_size;
-    ph->count = count;
-    ph->hashf = hashf;
+    ph->count      = count;
+    ph->hash_func  = hash_func;
     ph->num_hashes = 0;
 
     size_t worst_case = MHASH_MAX_HASHES;
@@ -87,7 +70,6 @@ static inline int mhash_init(MHash *ph,
             table[i] = MHASH_EMPTY_SLOT;
         if(ph->num_hashes >= worst_case)
             return MHASH_FAILED;
-
         ph->num_hashes++;
         uint8_t ok = 1;
         for(uint16_t i=0; i<count; ++i) {
@@ -103,21 +85,22 @@ static inline int mhash_init(MHash *ph,
     }
 }
 
-static inline uint16_t mhash_entry(const MHash *ph, const char *s) {
+static inline uint16_t mhash_entry(const MHash *ph, const void *s) {
     uint16_t idx = mhash__concat(ph, s) % ph->table_size;
     return ph->table[idx];
 }
 
 static inline void *mhash_check_at(const MHash *ph,
-                             const char *s,
-                             const char **keys,
-                             void *values,
-                             size_t sizeof_value){
+                          const void *s,
+                          const void **keys,
+                          void *values,
+                          size_t sizeof_value,
+                          int (*cmp_func)(const void *, const void *)) {
     uint16_t idx = mhash__concat(ph, s) % ph->table_size;
     uint16_t entry = ph->table[idx];
     if (entry == MHASH_EMPTY_SLOT || entry >= ph->count)
         return NULL;
-    if (strcmp(keys[entry], s) != 0)
+    if (cmp_func(keys[entry], s))
         return NULL;
     return (uint8_t *)values + ((size_t)entry * sizeof_value);
 }

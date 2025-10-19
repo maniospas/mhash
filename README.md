@@ -1,7 +1,9 @@
 # MHash
 
 This is an implementation of a perfect hash function that uniquely maps a given string to a
-`uint16_t` identifier.
+`uint16_t` identifier. It works by adding hash functions until they combine into a unique hash.
+The main idea is that, with a large enough table holding entry position ids, collisions are 
+rare so you will want only a few hashes.
 
 ## :rocket: Features
 
@@ -12,10 +14,14 @@ This is an implementation of a perfect hash function that uniquely maps a given 
 ## :zap: Quickstart
 
 Place the file *mhash.h* into your project and include it like below.
+You can optionally include *mhash_str.h* too, as it grants access to string
+hashes and comparisons.
 
 ```C
 #include "mhash.h"
+#include "mhash_str.h"
 #include <stdio.h>
+#include <string.h>
 
 int main(void) {
     int values[] = {1, 2, 3, 4, 5, 6};
@@ -27,15 +33,25 @@ int main(void) {
 
     // initialize the map (ALWAYS check for failure status, because init fails on excessive loads)
     MHash map;
-    if(mhash_init(&map, table, table_size, keys, num_entries, hash_prefix)) {
+    if(mhash_init(&map, table, table_size, keys, num_entries, mhash_str_prefix)) {
         printf("Failed to create map\n");
         return 1;
     }
     printf("%d hashes\n", map.num_hashes);
 
-    // query the map (retrieves void*)
+    // query the map (retrieves entry id)
     const char *query = "Cherry";
     printf("%s -> %d\n", query, values[mhash_entry(&map, query)]);
+
+    // query the map for specific value (retrieves value pointer or NULL)
+    int *val_ptr = (int *)mhash_check_at(&map, "Date", (const void**)keys, values, sizeof(int), mhash_strcmp);
+    if(val_ptr) printf("Found Date -> %d\n", *val_ptr);
+    else printf("Date not found\n");
+
+    // safely query the map for a missing key (DO NOT USE mhash_entry for this)
+    val_ptr = (int *)mhash_check_at(&map, "Unknown", (const void**)keys, values, sizeof(int), mhash_strcmp);
+    if(val_ptr) printf("Found Unknown -> %d\n", *val_ptr);
+    else printf("Unknown not found\n");
     return 0;
 }
 ```
