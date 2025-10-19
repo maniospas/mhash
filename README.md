@@ -6,8 +6,10 @@ until they combine into a unique hash. The main idea is that, with a large enoug
 entry ids, collisions are rare so you will want only a few hashes.
 
 **The main goal is to substitute linear search for few (e.g., &lt;255) alternatives.**
-In fact, in example benchmark we get +15% speedup compared to even simple lookup across two strings
+In fact, in example benchmark we get +20% speedup compared to even simple lookup across two strings
 at the cost of at most 28 bytes of memory!!!
+
+There is a performant C++ wrapper for string hashing in *mhash_cpp.h* but this is not documented yet.
 
 ## 🔥 Features
 
@@ -36,7 +38,7 @@ int main(void) {
     size_t table_size = 37; // ideally let this grow quadratically to the number of entries, and be a prime
     size_t num_entries = 6;
     const char *keys[] = {"Apple", "Banana", "Cherry", "Date", "Doodoo", "D"};
-    uint16_t table[table_size];
+    MHASH_INDEX_UINT table[table_size];
 
     // initialize the map (ALWAYS check for failure status, because init fails on excessive loads)
     MHash map;
@@ -80,8 +82,8 @@ It guarantees that it will use only the indicated memory region (so you can retr
 MHash does *not* track keys and values, so you need to manage those independently. The only requirement is that keys are known 
 at the point where you call `mhash_init`. 
 
-The last argument is a function pointer to computing the hash function given a `const void*` pointer to an instance of your
-data type and a `uint16_t` identifier of the hash function within its family. See *mhash_str.h* for string implementations;
+The last argument is a pointer to computing the hash function given a `const void*` pointer to an instance of your
+data type and a `MHASH_UINT` identifier of the hash function within its family. See *mhash_str.h* for string implementations;
 that files contains also the family of hash functions *mhash_str_prefix* that is based on an assumption that uniqueness information
 is heavily encoded in string prefixes.
 
@@ -134,23 +136,23 @@ and then keeps being multiplied by `1.2` afterwards.
 
 | keys | mhash (std) | linear (std) | speedup | avg hashes | max memory |
 |------|-------------|--------------|---------|------------|------------|
-|    2 |  17ns (2ns) |   20ns (2ns) |    1.2x |        1.1 |       7 x4B|
-|    3 |  18ns (1ns) |   24ns (0ns) |    1.4x |        1.3 |      10 x4B|
-|    4 |  18ns (2ns) |   28ns (0ns) |    1.6x |        1.4 |      14 x4B|
-|    5 |  19ns (3ns) |   28ns (0ns) |    1.5x |        1.6 |      25 x4B|
-|    6 |  19ns (3ns) |   31ns (2ns) |    1.6x |        1.7 |      33 x4B|
-|    7 |  19ns (3ns) |   32ns (2ns) |    1.7x |        1.7 |      47 x4B|
-|    8 |  22ns (6ns) |   33ns (1ns) |    1.5x |        2.2 |      35 x4B|
-|    9 |  22ns (6ns) |   36ns (2ns) |    1.6x |        2.1 |      49 x4B|
-|   10 |  21ns (5ns) |   37ns (1ns) |    1.8x |        2.0 |      55 x4B|
-|   20 |  25ns (9ns) |   49ns (2ns) |    2.0x |        2.7 |     185 x4B|
-|   30 |  25ns (8ns) |   58ns (1ns) |    2.3x |        2.8 |     478 x4B|
-|   40 |  28ns (11ns) |   73ns (1ns) |    2.6x |        3.1 |     637 x4B|
-|   50 |  30ns (12ns) |   87ns (1ns) |    2.9x |        3.3 |    1137 x4B|
-|   60 |  32ns (11ns) |   96ns (2ns) |    3.0x |        3.7 |    1357 x4B|
-|   70 |  35ns (14ns) |  115ns (2ns) |    3.3x |        3.9 |    1897 x4B|
-|   80 |  37ns (15ns) |  126ns (1ns) |    3.4x |        4.1 |    2597 x4B|
-|   90 |  37ns (16ns) |  137ns (2ns) |    3.7x |        4.1 |    3515 x4B|
-|  100 |  38ns (14ns) |  149ns (3ns) |    3.9x |        4.3 |    3243 x4B|
-|  200 |  41ns (17ns) |  264ns (2ns) |    6.5x |        4.8 |   23128 x4B|
-|  300 |  43ns (19ns) |  395ns (3ns) |    9.2x |        5.0 |   41576 x4B|
+|    2 |  16ns (1ns) |   20ns (0ns) |    1.3x |        1.1 |       7 x4B|
+|    3 |  16ns (1ns) |   24ns (0ns) |    1.5x |        1.3 |     431 x4B|
+|    4 |  17ns (1ns) |   27ns (1ns) |    1.6x |        1.5 |      14 x4B|
+|    5 |  17ns (1ns) |   28ns (0ns) |    1.6x |        1.8 |      25 x4B|
+|    6 |  17ns (1ns) |   31ns (1ns) |    1.8x |        1.8 |      27 x4B|
+|    7 |  17ns (1ns) |   33ns (0ns) |    1.9x |        2.0 |      47 x4B|
+|    8 |  18ns (2ns) |   36ns (1ns) |    2.0x |        2.3 |      35 x4B|
+|    9 |  18ns (2ns) |   38ns (2ns) |    2.1x |        2.4 |      59 x4B|
+|   10 |  18ns (2ns) |   39ns (1ns) |    2.1x |        2.4 |      55 x4B|
+|   20 |  21ns (4ns) |   52ns (1ns) |    2.5x |        3.2 |     223 x4B|
+|   30 |  21ns (4ns) |   67ns (2ns) |    3.1x |        3.5 |     478 x4B|
+|   40 |  25ns (7ns) |   74ns (1ns) |    3.0x |        4.1 |     765 x4B|
+|   50 |  24ns (6ns) |   93ns (2ns) |    3.9x |        3.9 |    1137 x4B|
+|   60 |  23ns (6ns) |   96ns (1ns) |    4.1x |        3.9 |    1357 x4B|
+|   70 |  27ns (8ns) |  100ns (2ns) |    3.7x |        4.5 |    2277 x4B|
+|   80 |  27ns (10ns) |  124ns (1ns) |    4.5x |        4.4 |    3117 x4B|
+|   90 |  28ns (9ns) |  151ns (1ns) |    5.4x |        4.5 |    2929 x4B|
+|  100 |  29ns (9ns) |  156ns (2ns) |    5.3x |        4.6 |    3892 x4B|
+|  200 |  32ns (12ns) |  265ns (2ns) |    8.2x |        5.2 |   16060 x4B|
+|  300 |  35ns (14ns) |  377ns (1ns) |   10.9x |        5.6 |   34646 x4B|

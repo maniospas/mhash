@@ -16,29 +16,49 @@
 
 #ifndef MHASH_STR_H
 #define MHASH_STR_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
 
+#ifndef MHASH_UINT
+//#define MHASH_UINT uint16_t
+#define MHASH_UINT uint64_t
+#endif
 
-static inline uint16_t mhash_str_all(const void *_s, uint16_t id) {
-    const char *s = (const char *)_s;
-    uint64_t h = 0x9E3779B97F4A7C15ULL * (id + 1);
-    for (const unsigned char *p = (const unsigned char *)s; *p; ++p)
-        h = (h ^ (*p + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2)));
-    return (uint16_t)(h & 0xFFFF);
+static inline MHASH_UINT mhash_str_all(const void *_s, MHASH_UINT id) {
+    MHASH_UINT h = 0x9E3779B97F4A7C15ULL * id;
+    const unsigned char *s = (const unsigned char *)_s;
+    for (;; ++s) {
+        char c = *s;
+        if (c == 0) break;
+        h ^= (uint64_t)(c + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2));
+    }
+    return h;
 }
 
-static inline uint16_t mhash_str_prefix(const void *_s, uint16_t id) {
-    const char *s = (const char *)_s;
-    uint64_t h = 0x9E3779B97F4A7C15ULL * (id + 1);
-    const unsigned char *p = (const unsigned char *)s;
-    for (uint16_t i = 0; i <= id+1 && *p; ++i, ++p)
-        h ^= (uint64_t)(*p + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2));
-    return (uint16_t)(h & 0xFFFF);
+static inline MHASH_UINT mhash_str_prefix(const void *_s, MHASH_UINT id) {
+    MHASH_UINT h = 0x9E3779B97F4A7C15ULL * id;
+    const unsigned char *s = (const unsigned char *)_s;
+    const unsigned char *end = s + id;
+    for (;s!=end; ++s) {
+        char c = *s;
+        if (c == 0) break;
+        h ^= (uint64_t)(c + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2));
+    }
+    return h;
 }
 
-static int mhash_strcmp(const void *a, const void *b) {
+static inline int mhash_strcmp(const void *a, const void *b) {
     return strcmp((const char *)a, (const char *)b);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MHASH_STR_H

@@ -87,7 +87,7 @@ int main(void) {
 
         for (int rep = 0; rep < N_REPS; ++rep) {
             size_t table_size = n*3;
-            uint16_t *table = malloc(table_size * sizeof(uint16_t));
+            MHASH_INDEX_UINT *table = malloc(table_size * sizeof(MHASH_INDEX_UINT));
             char **keys = make_keys(n);
             int *values = malloc(n * sizeof(int));
             for (size_t i = 0; i < n; ++i) values[i] = (int)i + 1;
@@ -96,7 +96,7 @@ int main(void) {
             size_t max_hashes = log2_floor(n)+2;
             size_t max_table_size = 128*n; // max 128*4B per entry
             for(;;) {
-                int success = mhash_init(&map, table, table_size, (const char **)keys, n, mhash_str_prefix)==MHASH_OK;
+                int success = mhash_init(&map, table, table_size, (const void **)keys, n, mhash_str_prefix)==MHASH_OK;
                 if(success && map.num_hashes<max_hashes)
                     break;
                 if(table_size<16)
@@ -107,7 +107,7 @@ int main(void) {
                     if(!success) goto end_of_rep;
                     break;
                 }
-                table = realloc(table, table_size * sizeof(uint16_t));
+                table = realloc(table, table_size * sizeof(MHASH_INDEX_UINT));
             }
 
             if(mem_kb < table_size)

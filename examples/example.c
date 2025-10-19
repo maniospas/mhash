@@ -11,7 +11,7 @@ int main(void) {
     size_t table_size = 17; // ideally let this grow quadratically to the number of entries, and be a prime
     size_t num_entries = 6;
     const char *keys[] = {"Apple", "Banana", "Cherry", "Date", "Doodoo", "D"};
-    uint16_t table[table_size];
+    MHASH_INDEX_UINT table[table_size];
 
     // initialize the map (ALWAYS check for failure status, because init fails on excessive loads)
     MHash map;
