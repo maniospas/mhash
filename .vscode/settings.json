@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.cm": "rust",
+        "*.st": "ruby",
+        "mhash_str.h": "c",
+        "stdint.h": "c"
+    }
+}

@@ -1,7 +1,7 @@
 # MHash
 
 This is an implementation of a perfect hash function that uniquely maps a given string to a
-`uint16_t` identifier. It works by adding hash functions from a parameterized family 
+`uint16_t` identifier. It works by concatenating several hash functions from a parameterized family 
 until they combine into a unique hash. The main idea is that, with a large enough table holding 
 entry ids, collisions are rare so you will want only a few hashes.
 
@@ -112,57 +112,65 @@ Benchmarks are lies. But they are useful lies. So here's a comparison
 with plain-old linear search. Disclaimer that this is by no means scientifically
 rigorous, because it follows the next setup. I may improve it in the future.
 
-- Experiments only have one repetition and only cover strings, which is what I was looking for.
+- Experiments only cover strings, which was my target use case.
 - Ran on uniformly random string characters and `mhash_str_all` or `mhash_str_prefix` hashing. 
 Natural language is not distributed this way, but if you know about easy distinction based on early characters
 you can choose the second of the two hashing strategies, which combines the advantages of both hashing and
 early exiting from comparisons.
 - Tested strings only had `16` characters. This is not indicative of real world conditions.
+- Times are measured across 1E6 random lookups and divided by total time for those to run. There are 100 experiment repetitions, but I 
+do not report standard deviation to make things easier to look at.
 - Internal hash table size is `2*n+n*n/2`, where `n` the number of entries. This was robust in producing only a few hashes but still
-succeeding on the first try. Find a schema yourself (ideally with a retry to grow tables when it fails). For example,
-the `mhash_str_prefix` requires 6 hashes for the specific experiment on 8 keys, which can easily be addressed by growing
-table sizes. The cost of this table is what grows the used memory (the latter is rounded up).
+succeeding on the first try. Find a schema yourself (ideally with a retry to grow tables when it fails). One option that I recommend
+is setting the maximum memory to, say, (stack-allocated)
+1024 or 4096 table entries and just increase that as needed or fail your program if there are too many keys and a unique function
+is not identified - this could be alright in certain applications. If you are alright with up to 255 hashes without failing, 
+set up `#define MHASH_NO_WORST_CASE` instead.
+- THERE ARE NO EXPERIMENTS FOR A LARGE NUMBER OF KEYS. Some testing reveals that the hashes of *mhash_str.h* are not well-suited
+to, thousands of keys in that they fail to find unique combinations.
 
 #### mhash_entry (mhash_str_all)
 
-| #keys | mhash_entry | linear | speedup | hashes | memory |
-| ----- | ----------- | ------ | ------- | ------ | ------ |
-| 2 | 75 ns | 20 ns | 0.26x | 2 hash | 1kB |
-| 3 | 28 ns | 24 ns | 0.86x | 1 hash | 1kB |
-| 4 | 50 ns | 28 ns | 0.57x | 2 hash | 1kB |
-| 5 | 27 ns | 29 ns | 1.09x | 1 hash | 1kB |
-| 6 | 43 ns | 29 ns | 0.68x | 2 hash | 1kB |
-| 7 | 27 ns | 30 ns | 1.11x | 1 hash | 1kB |
-| 8 | 29 ns | 32 ns | 1.11x | 1 hash | 1kB |
-| 9 | 28 ns | 33 ns | 1.18x | 1 hash | 1kB |
-| 10 | 45 ns | 36 ns | 0.81x | 2 hash | 1kB |
-| 20 | 44 ns | 52 ns | 1.17x | 2 hash | 1kB |
-| 30 | 65 ns | 50 ns | 0.76x | 3 hash | 1kB |
-| 40 | 72 ns | 86 ns | 1.19x | 4 hash | 2kB |
-| 50 | 46 ns | 81 ns | 1.77x | 2 hash | 3kB |
-| 60 | 28 ns | 96 ns | 3.45x | 1 hash | 4kB |
-| 70 | 25 ns | 124 ns | 4.88x | 1 hash | 6kB |
-| 80 | 42 ns | 122 ns | 2.87x | 2 hash | 7kB |
-| 90 | 26 ns | 128 ns | 5.00x | 1 hash | 9kB |
+| keys | mhash (std) | linear (std) | speedup | avg hashes | memory    |
+|------|-------------|--------------|---------|------------|-----------|
+|    2 |  29ns (8ns) |   20ns (1ns) |    0.7x |        1.2 |      1 kb |
+|    3 |  31ns (10ns) |   25ns (0ns) |    0.8x |        1.4 |      1 kb |
+|    4 |  34ns (13ns) |   27ns (0ns) |    0.8x |        1.5 |      1 kb |
+|    5 |  37ns (16ns) |   29ns (0ns) |    0.8x |        1.7 |      1 kb |
+|    6 |  37ns (16ns) |   29ns (0ns) |    0.8x |        1.7 |      1 kb |
+|    7 |  38ns (16ns) |   30ns (0ns) |    0.8x |        1.8 |      1 kb |
+|    8 |  37ns (18ns) |   31ns (0ns) |    0.8x |        1.8 |      1 kb |
+|    9 |  42ns (21ns) |   34ns (0ns) |    0.8x |        2.1 |      1 kb |
+|   10 |  37ns (21ns) |   35ns (0ns) |    1.0x |        1.8 |      1 kb |
+|   20 |  45ns (22ns) |   52ns (1ns) |    1.2x |        2.3 |      1 kb |
+|   30 |  47ns (26ns) |   50ns (1ns) |    1.1x |        2.5 |      1 kb |
+|   40 |  45ns (25ns) |   85ns (1ns) |    1.9x |        2.3 |      2 kb |
+|   50 |  47ns (27ns) |   79ns (0ns) |    1.7x |        2.4 |      3 kb |
+|   60 |  47ns (28ns) |   96ns (0ns) |    2.0x |        2.4 |      4 kb |
+|   70 |  48ns (27ns) |  123ns (1ns) |    2.5x |        2.5 |      6 kb |
+|   80 |  50ns (30ns) |  121ns (1ns) |    2.4x |        2.6 |      7 kb |
+|   90 |  46ns (25ns) |  125ns (0ns) |    2.7x |        2.4 |      9 kb |
+|  100 |  49ns (28ns) |  161ns (1ns) |    3.3x |        2.6 |     11 kb |
 
 #### mhash_entry (mhash_str_prefix)
 
-| #keys | mhash_entry | linear | speedup | hashes | memory |
-| ----- | ----------- | ------ | ------- | ------ | ------ |
-| 2 | 22 ns | 32 ns | 1.47x | 1 hash | 1kB |
-| 3 | 17 ns | 24 ns | 1.42x | 1 hash | 1kB |
-| 4 | 22 ns | 30 ns | 1.39x | 1 hash | 1kB |
-| 5 | 16 ns | 28 ns | 1.70x | 1 hash | 1kB |
-| 6 | 24 ns | 28 ns | 1.16x | 3 hash | 1kB |
-| 7 | 20 ns | 29 ns | 1.43x | 2 hash | 1kB |
-| 8 | 47 ns | 30 ns | 0.64x | 6 hash | 1kB |
-| 9 | 17 ns | 31 ns | 1.86x | 1 hash | 1kB |
-| 10 | 17 ns | 35 ns | 2.04x | 1 hash | 1kB |
-| 20 | 20 ns | 51 ns | 2.54x | 2 hash | 1kB |
-| 30 | 20 ns | 50 ns | 2.49x | 2 hash | 1kB |
-| 40 | 20 ns | 80 ns | 3.97x | 2 hash | 2kB |
-| 50 | 31 ns | 83 ns | 2.68x | 4 hash | 3kB |
-| 60 | 24 ns | 96 ns | 3.99x | 3 hash | 4kB |
-| 70 | 20 ns | 131 ns | 6.59x | 2 hash | 6kB |
-| 80 | 24 ns | 122 ns | 5.04x | 3 hash | 7kB |
-| 90 | 31 ns | 130 ns | 4.25x | 4 hash | 9kB |
+| keys | mhash (std) | linear (std) | speedup | avg hashes | memory    |
+|------|-------------|--------------|---------|------------|-----------|
+|    2 |  16ns (1ns) |   20ns (0ns) |    1.2x |        1.1 |      1 kb |
+|    3 |  17ns (4ns) |   24ns (0ns) |    1.4x |        1.6 |      1 kb |
+|    4 |  17ns (4ns) |   27ns (0ns) |    1.6x |        1.6 |      1 kb |
+|    5 |  18ns (4ns) |   28ns (0ns) |    1.6x |        1.6 |      1 kb |
+|    6 |  17ns (3ns) |   29ns (0ns) |    1.7x |        1.6 |      1 kb |
+|    7 |  18ns (6ns) |   29ns (0ns) |    1.6x |        1.8 |      1 kb |
+|    8 |  20ns (7ns) |   31ns (0ns) |    1.6x |        2.1 |      1 kb |
+|    9 |  19ns (7ns) |   34ns (0ns) |    1.8x |        1.9 |      1 kb |
+|   10 |  20ns (11ns) |   35ns (0ns) |    1.8x |        2.0 |      1 kb |
+|   20 |  20ns (9ns) |   52ns (1ns) |    2.6x |        2.1 |      1 kb |
+|   30 |  23ns (13ns) |   50ns (1ns) |    2.1x |        2.6 |      1 kb |
+|   40 |  21ns (10ns) |   85ns (0ns) |    3.9x |        2.4 |      2 kb |
+|   50 |  23ns (11ns) |   79ns (0ns) |    3.4x |        2.7 |      3 kb |
+|   60 |  26ns (14ns) |   96ns (0ns) |    3.7x |        3.1 |      4 kb |
+|   70 |  26ns (17ns) |  123ns (1ns) |    4.8x |        3.0 |      6 kb |
+|   80 |  23ns (12ns) |  122ns (0ns) |    5.2x |        2.7 |      7 kb |
+|   90 |  25ns (17ns) |  125ns (0ns) |    5.0x |        3.0 |      9 kb |
+|  100 |  26ns (12ns) |  161ns (1ns) |    6.2x |        3.3 |     11 kb |

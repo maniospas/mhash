@@ -62,7 +62,10 @@ static inline int mhash_init(MHash *ph,
     ph->num_hashes = 0;
 
     size_t worst_case = MHASH_MAX_HASHES;
+
+    #ifndef MHASH_NO_WORST_CASE
     if(worst_case>count) worst_case = count;
+    #endif
 
     for (;;) {
         // clear table even on failure

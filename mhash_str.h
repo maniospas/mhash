@@ -19,12 +19,13 @@
 #include <string.h>
 #include <stdint.h>
 
+
 static inline uint16_t mhash_str_all(const void *_s, uint8_t id) {
     const char *s = (const char *)_s;
     uint64_t h = 0x9E3779B97F4A7C15ULL * (id + 1);
     for (const unsigned char *p = (const unsigned char *)s; *p; ++p)
         h = (h ^ (*p + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2)));
-    return (uint16_t)(h & 0xFFFF);
+    return (uint16_t)((h+id) & 0xFFFF);
 }
 
 static inline uint16_t mhash_str_prefix(const void *_s, uint8_t id) {
@@ -33,7 +34,7 @@ static inline uint16_t mhash_str_prefix(const void *_s, uint8_t id) {
     const unsigned char *p = (const unsigned char *)s;
     for (uint8_t i = 0; i <= id+1 && *p; ++i, ++p)
         h ^= (uint64_t)(*p + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2));
-    return (uint16_t)(h & 0xFFFF);
+    return (uint16_t)((h+id) & 0xFFFF);
 }
 
 static int mhash_strcmp(const void *a, const void *b) {
