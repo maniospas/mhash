@@ -106,4 +106,63 @@ if(mhash_check_at(map, "Doodoo", keys, keys, sizeof(char*), mhash_strcmp))
     printf("Key exists");
 ```
 
-## ⏱️ benchmarks
+## ⏱️ Benchmarks
+
+Benchmarks are lies. But they are useful lies. So here's a comparison
+with plain-old linear search. Disclaimer that this is by no means scientifically
+rigorous, because it follows the next setup. I may improve it in the future.
+
+- Experiments only have one repetition and only cover strings, which is what I was looking for.
+- Ran on uniformly random string characters and `mhash_str_all` or `mhash_str_prefix` hashing. 
+Natural language is not distributed this way, but if you know about easy distinction based on early characters
+you can choose the second of the two hashing strategies, which combines the advantages of both hashing and
+early exiting from comparisons.
+- Tested strings only had `16` characters. This is not indicative of real world conditions.
+- Internal hash table size is `2*n+n*n/2`, where `n` the number of entries. This was robust in producing only a few hashes but still
+succeeding on the first try. Find a schema yourself (ideally with a retry to grow tables when it fails). For example,
+the `mhash_str_prefix` requires 6 hashes for the specific experiment on 8 keys, which can easily be addressed by growing
+table sizes. The cost of this table is what grows the used memory (the latter is rounded up).
+
+#### mhash_entry (mhash_str_all)
+
+| #keys | mhash_entry | linear | speedup | hashes | memory |
+| ----- | ----------- | ------ | ------- | ------ | ------ |
+| 2 | 75 ns | 20 ns | 0.26x | 2 hash | 1kB |
+| 3 | 28 ns | 24 ns | 0.86x | 1 hash | 1kB |
+| 4 | 50 ns | 28 ns | 0.57x | 2 hash | 1kB |
+| 5 | 27 ns | 29 ns | 1.09x | 1 hash | 1kB |
+| 6 | 43 ns | 29 ns | 0.68x | 2 hash | 1kB |
+| 7 | 27 ns | 30 ns | 1.11x | 1 hash | 1kB |
+| 8 | 29 ns | 32 ns | 1.11x | 1 hash | 1kB |
+| 9 | 28 ns | 33 ns | 1.18x | 1 hash | 1kB |
+| 10 | 45 ns | 36 ns | 0.81x | 2 hash | 1kB |
+| 20 | 44 ns | 52 ns | 1.17x | 2 hash | 1kB |
+| 30 | 65 ns | 50 ns | 0.76x | 3 hash | 1kB |
+| 40 | 72 ns | 86 ns | 1.19x | 4 hash | 2kB |
+| 50 | 46 ns | 81 ns | 1.77x | 2 hash | 3kB |
+| 60 | 28 ns | 96 ns | 3.45x | 1 hash | 4kB |
+| 70 | 25 ns | 124 ns | 4.88x | 1 hash | 6kB |
+| 80 | 42 ns | 122 ns | 2.87x | 2 hash | 7kB |
+| 90 | 26 ns | 128 ns | 5.00x | 1 hash | 9kB |
+
+#### mhash_entry (mhash_str_prefix)
+
+| #keys | mhash_entry | linear | speedup | hashes | memory |
+| ----- | ----------- | ------ | ------- | ------ | ------ |
+| 2 | 22 ns | 32 ns | 1.47x | 1 hash | 1kB |
+| 3 | 17 ns | 24 ns | 1.42x | 1 hash | 1kB |
+| 4 | 22 ns | 30 ns | 1.39x | 1 hash | 1kB |
+| 5 | 16 ns | 28 ns | 1.70x | 1 hash | 1kB |
+| 6 | 24 ns | 28 ns | 1.16x | 3 hash | 1kB |
+| 7 | 20 ns | 29 ns | 1.43x | 2 hash | 1kB |
+| 8 | 47 ns | 30 ns | 0.64x | 6 hash | 1kB |
+| 9 | 17 ns | 31 ns | 1.86x | 1 hash | 1kB |
+| 10 | 17 ns | 35 ns | 2.04x | 1 hash | 1kB |
+| 20 | 20 ns | 51 ns | 2.54x | 2 hash | 1kB |
+| 30 | 20 ns | 50 ns | 2.49x | 2 hash | 1kB |
+| 40 | 20 ns | 80 ns | 3.97x | 2 hash | 2kB |
+| 50 | 31 ns | 83 ns | 2.68x | 4 hash | 3kB |
+| 60 | 24 ns | 96 ns | 3.99x | 3 hash | 4kB |
+| 70 | 20 ns | 131 ns | 6.59x | 2 hash | 6kB |
+| 80 | 24 ns | 122 ns | 5.04x | 3 hash | 7kB |
+| 90 | 31 ns | 130 ns | 4.25x | 4 hash | 9kB |
