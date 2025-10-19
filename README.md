@@ -1,15 +1,16 @@
 # MHash
 
 This is an implementation of a perfect hash function that uniquely maps a given string to a
-`uint16_t` identifier. It works by adding hash functions until they combine into a unique hash.
-The main idea is that, with a large enough table holding entry position ids, collisions are 
-rare so you will want only a few hashes.
+`uint16_t` identifier. It works by adding hash functions from a parameterized family 
+until they combine into a unique hash. The main idea is that, with a large enough table holding 
+entry position ids, collisions are rare so you will want only a few hashes.
 
 ## :rocket: Features
 
 - drop-in header installation
-- C and C++ compatible, no exceptions, no aborts, no rtti
+- easy to integrate: no exceptions, no aborts, no rtti
 - sub-linear time string indexing
+- easily extensible: implement a hash and -optionally- a comparator
 
 ## :zap: Quickstart
 
@@ -60,37 +61,40 @@ int main(void) {
 
 #### MHash
 
-The hash map data structure. Once created, you can access `MHash.num_hashes` to get a sense of how many hashing operations are internally performed.
-There can be up to 255 internal hashes, and computational cost is proportional to those. The number of stored elements is tracked through `MHash.count`.
+The hash map data structure. Once created, you can access `MHash.num_hashes` to get a sense of how many hashing 
+operations are internally performed. There can be up to 255 internal hashes, and computational cost is proportional 
+to those. The number of stored elements is tracked through `MHash.count`.
 
 ⚠️⚠️⚠️ *Do NOT modify field values.*
 
 #### mhash_init
 
 It does not allocate any memory, but requires a manually allocated table pointer and associated capacity for its internal use.
-It guarantess that it will use only the indicated memory region (so you can retrieve pointers from larger buffers). Do note that MHash does *not* track keys and values,
-so you need to manage those independently. The only requirement is that keys are known at the point where you call `mhash_init`.
+It guarantess that it will use only the indicated memory region (so you can retrieve pointers from larger buffers). Do note that 
+MHash does *not* track keys and values, so you need to manage those independently. The only requirement is that keys are known 
+at the point where you call `mhash_init`.
 
 #### mhash_entry
 
-Retrieves the value associated with a given string in the range `0`..`MHash.count-1`. If you want a mapping to ids, there is no need to store
-any kind of value elsewhere.
+Retrieves the value associated with a given string in the range `0`..`MHash.count-1`. If you want a mapping to ids, there is no 
+need to store any kind of value elsewhere.
 
-⚠️⚠️⚠️ *Calling mhash_entry for a non-registed key is UB.* Do not attempt to error check the result afterwards by looking at the implementation - the interface is
-not equipped to present such info. This compromise is made for the sake of speed. Use the next function to safely get the value of an entry that could be missing.
+⚠️⚠️⚠️ *Calling mhash_entry for a non-registed key is UB.* Do not attempt to error check the result afterwards by looking at the
+implementation - the interface is not equipped to present such info. This compromise is made for the sake of speed. Use the next 
+function to safely get the value of an entry that could be missing.
 
 #### mhash_check_at
 
-This is a safer -albeit a tad slower- version of `mhash_entry`. It returns a pointer at the memory address of a corresponding value,
-or NULL if the element is not found. The main additional cost is an internal string comparison.
+This is a safer -albeit a tad slower- version of `mhash_entry`. It returns a pointer at the memory address of a corresponding 
+value, or NULL if the element is not found. The main additional cost is an internal comparison mechanism that must be provided.
 
 ```C
-int* value = mhash_checkat(map, query, keys, values, sizeof(*value));
+int* value = mhash_check_at(map, query, keys, values, sizeof(*value), mhash_strcmp);
 ```
 
 Pass the keys themselves as values to the last function to check that a value exists:
 
 ```C
-if(mhash_check_at(map, "Doodoo", keys, keys, sizeof(char*)))
+if(mhash_check_at(map, "Doodoo", keys, keys, sizeof(char*), mhash_strcmp))
     printf("Key exists");
 ```
