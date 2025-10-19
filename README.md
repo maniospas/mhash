@@ -1,7 +1,7 @@
 # MHash
 
-This is an implementation of a hash function that uniquely maps a given string to a
-`uint16_t` identifier. It works by concatenating several hash functions from a parameterized family 
+This is an implementation of a hash function that uniquely maps a given key to an
+identifier. It works by concatenating several hash functions from a parameterized family 
 until they combine into a unique hash. The main idea is that, with a large enough table holding 
 entry ids, collisions are rare so you will want only a few hashes.
 

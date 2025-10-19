@@ -3,9 +3,9 @@
 
 #include "mhash.h"
 #include "mhash_str.h"
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <iostream>
 #include <bit>
 #include <cstring>
 #include <cstdlib>
@@ -16,15 +16,12 @@ class MHashMap {
         std::string key;
         ValueType value;
     };
-
     MHash mhash_{};
     std::vector<MHASH_INDEX_UINT> table_;
     std::vector<Entry> entries_;
-
     // staging before build
     std::vector<std::string> staged_keys_;
     std::vector<ValueType> staged_values_;
-
 public:
     MHashMap() = default;
     MHashMap(const MHashMap&) = delete;
@@ -44,10 +41,10 @@ public:
     inline ValueType* get(const std::string& key) {
         const MHASH_UINT pos = mhash_entry_pos(&mhash_, key.c_str());
         const MHASH_INDEX_UINT entry_idx = mhash_.table[pos];
-        if (entry_idx == MHASH_EMPTY_SLOT)
+        if (entry_idx == MHASH_EMPTY_SLOT) [[unlikely]]
             return nullptr;
         Entry& e = entries_[entry_idx];
-        if(e.key != key)
+        if(e.key != key) [[unlikely]]
             return nullptr;
         return &e.value;
     }
@@ -55,8 +52,8 @@ public:
     inline ValueType* get_existing(const std::string& key) {
         const MHASH_UINT pos = mhash_entry_pos(&mhash_, key.c_str());
         const MHASH_INDEX_UINT entry_idx = mhash_.table[pos];
-        if (entry_idx == MHASH_EMPTY_SLOT)
-            return nullptr;
+        //if (entry_idx == MHASH_EMPTY_SLOT) [[unlikely]]
+        //    return nullptr;
         Entry& e = entries_[entry_idx];
         return &e.value;
     }
@@ -70,18 +67,14 @@ public:
 
     void build() {
         if (staged_keys_.empty()) return;
-
         const size_t new_count = staged_keys_.size();
         const size_t old_count = entries_.size();
         const size_t total_count = old_count + new_count;
-
         entries_.reserve(total_count);
         for (size_t i = 0; i < new_count; ++i)
             entries_.push_back({std::move(staged_keys_[i]), staged_values_[i]});
-
         staged_keys_.clear();
         staged_values_.clear();
-
         rebuild();
     }
 
@@ -95,48 +88,29 @@ public:
 private:
     void rebuild() {
         if (entries_.empty()) return;
-
         const size_t n = entries_.size();
         size_t table_size = n * 3;
         const size_t max_hashes = std::bit_width(n) + 2;
         const size_t max_table_size = 128 * n;
         table_.assign(table_size, MHASH_EMPTY_SLOT);
-
         std::vector<const void*> key_ptrs(n);
         for (size_t i = 0; i < n; ++i)
             key_ptrs[i] = entries_[i].key.c_str();
-
         for (;;) {
-            const int success = (mhash_init(&mhash_,
-                                            table_.data(),
-                                            table_size,
-                                            key_ptrs.data(),
-                                            n,
-                                            mhash_str_prefix) == MHASH_OK);
-            if (success && mhash_.num_hashes < max_hashes)
-                break;
-
-            if (table_size < 16)
-                ++table_size;
-            else
-                table_size = table_size + table_size / 5 + 1;
-
-            if (table_size > 65536 || table_size > max_table_size) {
-                if (!success)
-                    throw std::runtime_error("mhash_init failed: table too small");
+            const int success = (mhash_init(&mhash_, table_.data(), table_size, key_ptrs.data(), n, mhash_str_prefix) == MHASH_OK);
+            if(success && mhash_.num_hashes < max_hashes) break;
+            if(table_size < 16) ++table_size;
+            else table_size = table_size + table_size / 5 + 1;
+            if(table_size > 65536 || table_size > max_table_size) {
+                if (!success) throw std::runtime_error("Failed to build map: either too many collisions, too many keys, or duplicate keys.");
                 break;
             }
             table_.assign(table_size, MHASH_EMPTY_SLOT);
         }
-
-        std::cout << "MHashMap built: " << n
-                  << " keys, table size " << table_size
-                  << ", num_hashes " << mhash_.num_hashes << "\n";
     }
 
     static inline MHASH_UINT mhash_entry_pos(const MHash *ph, const void *s) {
-        return mhash__concat(ph->hash_func, ph->num_hashes, s)
-             % (MHASH_UINT)ph->table_size;
+        return mhash__concat(ph->hash_func, ph->num_hashes, s) % (MHASH_UINT)ph->table_size;
     }
     void move_from(MHashMap&& o) noexcept {
         mhash_ = o.mhash_;

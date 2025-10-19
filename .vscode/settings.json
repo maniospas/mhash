@@ -4,6 +4,11 @@
         "*.st": "ruby",
         "mhash_str.h": "c",
         "stdint.h": "c",
-        "mhash.h": "c"
+        "mhash.h": "c",
+        "chrono": "cpp",
+        "random": "cpp",
+        "bit": "cpp",
+        "vector": "cpp",
+        "string": "cpp"
     }
 }
